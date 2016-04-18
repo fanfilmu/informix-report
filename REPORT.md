@@ -421,3 +421,63 @@ Usunięcie pozostałych logów z `rootdbs`:
 Ostatecznie:
 
 ![Komenda onstat -l](images/3_logfiles.png)
+
+## Zarządzanie przestrzenią dyskową 2
+
+### Zmiana trybu logowania
+
+Zmiana trybu logowania na `unbuffered`:
+
+```bash
+ $ ondblog unbuf db1_mb
+ $ ontape -s
+```
+
+### Tworzenie tabeli
+
+```bash
+ $ cat > create_tab1_mb.sql
+CREATE TABLE tab1_mb  
+  (
+    id INT PRIMARY KEY,
+    nazwa CHAR(1200)
+  );
+ $ dbaccess db1_mb create_tab1_mb.sql
+```
+
+### Wstawienie wierszy do nowej tabeli
+
+Generowanie koment SQL:
+
+```bash
+ $ cat > gen_insert_tab1_mb.sh
+#/bin/bash
+for i in `seq 1 30000`; do
+  echo "INSERT INTO tab1_mb values (\"$i\", \"OK\");"
+done
+ $ bash gen_insert_tab1_mb.sh > insert_tab1_mb.sql
+```
+
+Wstawienie wierszy:
+
+```bash
+ $ dbaccess db1_mb insert_tab1_mb.sql
+```
+
+### Wypełnianie logów logicznych
+
+![Komenda onstat -l](images/4_logfiles.png)
+
+Logi logiczne były wypełnianie zgodnie z kolejnością ustawioną przez `number`.
+
+### Raport wykorzystania przestrzeni dyskowej
+
+![Komenda onstat -d](images/5_onstat.png)
+
+Pierwszy chunk przestrzeni `logmb` został wypełniony prawie w całości (pozostały 447 strony wolne). Drugi natomiast został wypełniony tylko w części (12497 stron z 50000 jest wolne).
+
+Ponieważ tryb logowania dla tej bazy danych został ustawiony na "niebuforowany", przestrzeń dla samej bazy, czyli `danemb1` również została wypełniona (pozostało tylko 1805 wolnych stron w chunku `danemb1_2`).
+
+### Status tabeli `tab1_mb`
+
+![Komenda oncheck -pt db1_mb](images/6_oncheck.png)
