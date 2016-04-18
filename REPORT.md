@@ -334,3 +334,90 @@ DBspace Usage Report: tmp2_mb
  Total Used:       53
  Total Free:    14947
 ```
+
+## Zarządzanie logami
+
+### Przeniesienie physical log
+
+```bash
+ $ onparams -p -s 14000 -d logmb
+ Do you really want to change the physical log? (y/n)y
+ Log operation started. To monitor progress, use the
+ onstat -l command.
+ ** WARNING ** Because the physical log has been
+ modified, a level 0 archive
+ must be taken of the following spaces before an
+ incremental archive will be
+ permitted for them: rootdbs logmb
+ (see Dynamic Server Administrator\'s manual)
+```
+
+### Przeniesienie ligical log
+
+Usunięcie zapisu do 'taśmy' z konfiguracji `$INFORMIXDIR/etc/$ONCONFIG`:
+
+```bash
+LTAPEDEV /dev/null
+```
+
+Restart instancji:
+
+```bash
+ $ onmode -ku && oninit
+```
+
+Sprawdzenie aktualnej struktury logów:
+
+![Komenda onstat -l](images/2_logfiles.png)
+
+Usunięcie logów:
+
+```bash
+ $ onparams -d -l 1 -y
+ $ onparams -d -l 5 -y
+ $ onparams -d -l 6 -y
+```
+
+Dodanie nowego chunka do przestrzeni `logmb`:
+
+```bash
+ $ cat /dev/null > /ol_mb_log/logmb_1
+ $ chmod 660 /ol_mb_log/logmb_1
+ $ cat /dev/null > /ol_mb_mirror/logmb_1
+ $ chmod 660 /ol_mb_mirror/logmb_1
+ $ onspaces -a logmb -p /ol_mb_log/logmb_1 -o 0 \
+     -s 100000 -m /ol_mb_mirror/logmb_1 0
+```
+
+Dodanie sześciu nowych logów w przestrzeni `logmb`:
+
+```bash
+# 6 razy:
+ $ onparams -a -d logmb -s 15000
+```
+
+Pseudo-archiwizacja, by możliwe było korzystanie z nowych logów:
+
+```bash
+ $ ontape -s
+```
+
+Przesunięcie aktualnego logu do nowej przestrzeni:
+
+```bash
+ $ onmode -l
+ $ onmode -c
+```
+
+Usunięcie pozostałych logów z `rootdbs`:
+
+```bash
+ $ onparams -d -l 2 -y
+ $ onparams -d -l 3 -y
+ $ onparams -d -l 4 -y
+ $ ontape -s
+```
+
+Ostatecznie:
+
+![Komenda onstat -l](images/3_logfiles.png)
